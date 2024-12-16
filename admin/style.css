@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Parkinsans&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Tenor+Sans&display=swap');
+
+:root {
+  --dark-color: rgb(22, 22, 22);
+  --primary-color: #42535c;
+  --first-color: rgb(32, 32, 32);
+  --second-color: rgb(65, 65, 65);
+  --third-color: rgb(83, 83, 83);
+  --blue-color: rgb(49, 141, 246);
+  --success-color: rgb(35, 212, 88);
+  --danger-color: rgb(216, 79, 79);
+  --white-color: rgb(255, 255, 255);
+  --large-size: 20px;
+  --normal-size: 18px;
+  --small-size: 16px;
+}
+
+#app_currencyconverter{
+  font-family: Poppins;
+}
+input[type="color"] {
+  appearance: none; /* Remove browser's default styling */
+  -webkit-appearance: none; /* Safari-specific */
+  width: 28px;
+  height: 28px;
+  border: 2px solid #ccc;
+  border-radius: 50%; /* Make it circular */
+  padding: 0;
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease; /* Add hover transition */
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 50%; /* Optional: Matches outer circle */
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none; /* Remove inner square's border */
+  border-radius: 50%; /* Make the swatch circular */
+  padding: 0;
+}
+
+input[type="color"]:hover {
+  border-color: #888; /* Change border color on hover */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Add subtle hover effect */
+}
+
+input[type="color"]:focus {
+  outline: none; /* Remove focus outline */
+  border-color: #0056b3; /* Highlight border color on focus */
+  box-shadow: 0 0 5px rgba(0, 86, 179, 0.5); /* Focus glow effect */
+}
