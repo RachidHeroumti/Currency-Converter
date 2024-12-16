@@ -9,23 +9,7 @@ var vm = new StoreinoApp({
       text: "error!",
     },
     searchData: [],
-    selectedList: [
-      {
-        id: 115,
-        countryName: "Morocco",
-        currency: "MAD",
-      },
-      {
-        id: 185,
-        countryName: "United States",
-        currency: "USD",
-      },
-      {
-        id: 59,
-        countryName: "France",
-        currency: "EUR",
-      },
-    ],
+    selectedList: [],
     backgroundColor:'#ffffff',
     contentColor:'#000000',
     showAdvance:false,
@@ -36,9 +20,16 @@ var vm = new StoreinoApp({
     query(value) {
       this.getCurrency(value);
     },
+    selectedList(ls){
+      console.log('data will put in _data_',ls);
+      this.data=ls;
+      __DATA__.SelectedCurrencies=this.data ;
+    }
 
   },
-  mounted() {},
+  mounted() {
+    this.selectedList=this.data.SelectedCurrencies;
+  },
   methods: {
   
     getCurrency(value) {

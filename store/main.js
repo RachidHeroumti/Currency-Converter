@@ -1,73 +1,70 @@
 const fetchData = async (url) => {
-  const response = await fetch(url);
-  const text = await response.text();
-  if (!text || text[0] !== "1") {
-    throw new Error("Unable to fetch the country");
+  try {
+    const response = await fetch(url);
+    const text = await response.text();
+    if (!text || text[0] !== "1") {
+      throw new Error("Unable to fetch the country");
+    }
+    const [id, code, nickName, name] = text.split(";");
+    return { id: parseInt(id), code, nickName, name };
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    throw error;
   }
-  const [id, code, nickName, name] = text.split(";");
-  return { id: parseInt(id), code, nickName, name };
 };
 
 const vm = new StoreinoApp({
   el: "#app_currencyconverter",
   data: {
     configData: __DATA__,
-    Selectedcountries: [  {
-      id: 115,
-      countryName: "Morocco",
-      currency: "MAD",
-    },
-    {
-      id: 185,
-      countryName: "United States",
-      currency: "USD",
-    },
-    {
-      id: 59,
-      countryName: "France",
-      currency: "EUR",
-    },],
-    ExchangeRate:1,
+    SelectedCurrencies: [],
+    ExchangeRate: 1,
   },
 
   mounted() {
-    // Optional initialization logic
+    this.SelectedCurrencies = this.configData.SelectedCurrencies || [];
+    console.log("🚀 ~ mounted ~  this.SelectedCurrencies:", this.SelectedCurrencies);
+
     this.checkUserCountry();
   },
 
   methods: {
     async checkUserCountry() {
       const priceElement = document.querySelector(".price");
-      const priceText = priceElement?.innerText || "";
-  
-      // Extract the price amount and base currency
-      const match = priceText.match(/(\d+(?:\.\d+)?)([A-Za-z]+)/);
-      if (!match) {
-        console.error("Failed to parse the price or currency from the price element.");
+      const currencyElement = document.querySelector(".currency");
+
+      if (!priceElement || !currencyElement) {
+        console.error("Price or currency element is missing in the DOM.");
         return;
       }
 
-      const originalPrice = parseFloat(match[1]); 
-      const baseCurrency = match[2]; 
+      const priceText = priceElement.innerText.trim();
+      const currencyText = currencyElement.innerText.trim();
+
+      const originalPrice = parseFloat(priceText);
+      if (isNaN(originalPrice)) {
+        console.error("Invalid price value detected.");
+        return;
+      }
 
       try {
         const userCountry = await fetchData("https://ip2c.org/s");
+        console.log("🚀 ~ checkUserCountry ~ userCountry:", userCountry);
 
-        const CurrentCountry = this.Selectedcountries.filter(
-          (item) => {
-            return item.countryName === userCountry.name
-          }
+        const CurrentCountry = this.SelectedCurrencies.find(
+          (item) => item.countryName === userCountry.name
         );
-           
+
         if (CurrentCountry && originalPrice > 0) {
+          //originalPrice*9.95;
           const convertedPrice = await this.getEXchangeRate(
-            'USD', 
-            CurrentCountry.CurrencyCode,
+            currencyText,
+            CurrentCountry.currency,
             originalPrice
-            
           );
 
-          priceElement.innerText = `${CurrentCountry[0].currency}${convertedPrice}`;
+          priceElement.innerText = convertedPrice.toFixed(2); 
+          currencyElement.innerText = CurrentCountry.currency; 
         } else {
           console.error("User's country not found or the price is invalid.");
         }
@@ -79,35 +76,38 @@ const vm = new StoreinoApp({
     async getEXchangeRate(from, to, amount) {
       const token = window.localStorage.getItem("x-auth-token");
       if (!token) {
-        throw new Error("Authentication token is missing.");
+        console.error("Authentication token is missing.");
+        return amount;
       }
       try {
-
+        console.log("Request Payload:", { from, to, amount });
+console.log("Headers:", { "x-auth-token": token });
         const response = await fetch(
           "https://gateway.storeino.com/api/paypal/converts/exchange",
           {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "content-type": "application/json",
               accept: "application/json, text/plain, */*",
-              "x-auth-token": ` ${token}`,
+              "x-auth-token": `${token}`,
             },
-            body: { from, to, amount },
+            body: { from, to, amount }, 
           }
         );
 
-       const data = await response.json();
-        console.log("🚀 ~ convertCurrency ~ data:", response)
+        const data = await response.json();
+        console.log("🚀 ~ getEXchangeRate ~ data:", data);
 
         if (response.ok && data.success) {
-          this.ExchangeRate=data.result ;
-          return amount*data.result; 
+          this.ExchangeRate = data.result;
+          return  data.result;
         } else {
-          throw new Error(data.message || "Failed to convert currency.");
+          console.error("Failed to convert currency:", data.message || "Unknown error.");
+          return 1;
         }
       } catch (error) {
         console.error("Currency conversion error:", error);
-        return amount; 
+        return 1;
       }
     },
 
@@ -129,6 +129,3 @@ const vm = new StoreinoApp({
     },
   },
 });
-       
-       
-        
