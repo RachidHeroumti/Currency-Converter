@@ -1,7 +1,7 @@
 # Prod
 @token =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdG9yZSI6eyJfaWQiOiI2NzFhMGQ4MWJkMTViOTAwMTIyNTY2NDEifSwic291cmNlIjoiVEhFTUVTIiwiaWF0IjoxNzMzNDg0NjMxLCJleHAiOjE3NjUwMjA2MzF9.CSeoQaIg0-HHSLBbSwNXVBOPQjn2zvFikp0jZX3XvWg
 ###
-GET https://api-stores.storeino.world/api/apps/search/?route=megamenu
+GET https://api-stores.storeino.world/api/apps/search/?route=currencyconverter
 X-Auth-Token: {{token}}
 
 ###
@@ -15,12 +15,12 @@ X-Auth-Token: {{token}}
         "name": "StoreinoApps",
         "url": "#"
     },
-    "images": ["https://storeno.b-cdn.net/stores/12-2024/1734002098916.png"],
-    "placement": "AFTER_HEADER|BEFORE_FOOTER|SIDE_BAR",
+    "images": ["https://storeno.b-cdn.net/stores/12-2024/1734598463282.png"],
+     "placement": "BEFORE_FOOTER",
     "adminPlacement": "NONE",
     "isActive": true,
     "autoRenew": false,
-    "description": "Currency Converter app to controlle curreny showed in you store based on several thing",
+    "description": "Currency Converter app to controlle curreny showed in you store based on location",
     "name": "Currency Converter",
     "route": "currencyconverter",
     "price":0,

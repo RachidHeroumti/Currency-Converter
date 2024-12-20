@@ -3,7 +3,7 @@ const fetchData = async (url) => {
     const response = await fetch(url);
     const text = await response.text();
     if (!text || text[0] !== "1") {
-      throw new Error("Unable to fetch the country");
+      throw new Error("Invalid response format from server.");
     }
     const [id, code, nickName, name] = text.split(";");
     return { id: parseInt(id), code, nickName, name };
@@ -13,104 +13,190 @@ const fetchData = async (url) => {
   }
 };
 
+(function (history) {
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+
+  history.pushState = function (...args) {
+    const result = originalPushState.apply(this, args);
+    window.dispatchEvent(new Event("pushstate"));
+    return result;
+  };
+
+  history.replaceState = function (...args) {
+    const result = originalReplaceState.apply(this, args);
+    window.dispatchEvent(new Event("replacestate"));
+    return result;
+  };
+})(window.history);
+
 const vm = new StoreinoApp({
   el: "#app_currencyconverter",
   data: {
     configData: __DATA__,
+    currentPath: window.location.pathname,
     SelectedCurrencies: [],
     ExchangeRate: 1,
+    originalCurrency: "",
+    newCurrency: "",
   },
 
   mounted() {
-    this.SelectedCurrencies = this.configData.SelectedCurrencies || [];
-    console.log("🚀 ~ mounted ~  this.SelectedCurrencies:", this.SelectedCurrencies);
-
-    this.checkUserCountry();
+    this.SelectedCurrencies = this.configData.SelectedCurrencies || [];;
+    this.ExchangeRate=this.getExchangeRateFromlocalstorage();
+    this.getOriginalCurrency();
+    this.initializeCurrencyConverter();
+   // this.handleRouteChange();
+    window.addEventListener("popstate", this.handleRouteChange);
+    window.addEventListener("pushstate", this.handleRouteChange);
+  },
+  beforeDestroy() {
+    window.removeEventListener("popstate", this.handleRouteChange);
+    window.removeEventListener("pushstate", this.handleRouteChange);
+  },
+  watch: {
+    $route() {
+      console.log("🚀 ~ new route:", this.$route.path);
+      setTimeout(() => {
+        this.initializeCurrencyConverter();
+      }, 500); 
+    },
   },
 
   methods: {
-    async checkUserCountry() {
-      const priceElement = document.querySelector(".price");
-      const currencyElement = document.querySelector(".currency");
-
-      if (!priceElement || !currencyElement) {
-        console.error("Price or currency element is missing in the DOM.");
-        return;
+    getExchangeRateFromlocalstorage() {
+      const storedRate = localStorage.getItem('rate-exchange');
+      if (storedRate) {
+        const rateData = JSON.parse(storedRate);
+        if (Date.now() < rateData.expiry) {
+          return rateData.value;
+        } else {
+          localStorage.removeItem('rate-exchange'); 
+        }
       }
-
-      const priceText = priceElement.innerText.trim();
-      const currencyText = currencyElement.innerText.trim();
-
-      const originalPrice = parseFloat(priceText);
-      if (isNaN(originalPrice)) {
-        console.error("Invalid price value detected.");
-        return;
-      }
-
+      return 1; 
+    },
+    getCookie(name) {
+      const cookieString = document.cookie;
+      const cookies = cookieString.split("; ").reduce((acc, cookie) => {
+        const [key, value] = cookie.split("=");
+        acc[key] = value;
+        return acc;
+      }, {});
+      return cookies[name] || "";
+    },
+    handleRouteChange() {
+      console.log("🚀 ~ change ~ path:", this.currentPath);
+      setTimeout(() => {
+        this.initializeCurrencyConverter();
+      }, 1000); 
+    },
+    async initializeCurrencyConverter() {
       try {
+        const currentCountry = await this.getCurrentCountryInfo();
+        if (currentCountry) {
+          this.newCurrency = currentCountry.currency;
+          if(this.ExchangeRate === 1){
+            this.ExchangeRate = await this.getExchangeRate(currentCountry);
+          }  
+          this.ChangePrices();
+          this.updateCurrencyDisplay();
+        }
+      } catch (error) {
+        console.error("Initialization failed:", error);
+      }
+    },
+    async getCurrentCountryInfo() {
+      try {
+        // const cachedCountry = localStorage.getItem('current-country');
+        // if (cachedCountry) {
+        //   console.log("🚀 ~ getCurrentCountryInfo ~ Cached Country:", JSON.parse(cachedCountry));
+        //   return JSON.parse(cachedCountry);
+        // }
         const userCountry = await fetchData("https://ip2c.org/s");
-        console.log("🚀 ~ checkUserCountry ~ userCountry:", userCountry);
-
-        const CurrentCountry = this.SelectedCurrencies.find(
+        const currentCountry = this.SelectedCurrencies.find(
           (item) => item.countryName === userCountry.name
         );
-
-        if (CurrentCountry && originalPrice > 0) {
-          //originalPrice*9.95;
-          const convertedPrice = await this.getEXchangeRate(
-            currencyText,
-            CurrentCountry.currency,
-            originalPrice
-          );
-
-          priceElement.innerText = convertedPrice.toFixed(2); 
-          currencyElement.innerText = CurrentCountry.currency; 
-        } else {
-          console.error("User's country not found or the price is invalid.");
+        if (!currentCountry) {
+          console.warn("Country not in select list");
+          return null;
         }
+
+        console.log("🚀 ~ getCurrentCountryInfo ~ Fetched Country:", currentCountry);
+        localStorage.setItem('current-country', JSON.stringify(currentCountry));
+        return currentCountry;
       } catch (error) {
-        console.error("An error occurred while fetching user country data:", error);
+        console.error("Failed to fetch user country info:", error);
+        return null;
+      }
+    },    
+    getOriginalCurrency() {
+      this.originalCurrency = this.getCookie("CURRENT_CURRENCY");
+      console.log("🚀 ~ getOriginalCurrency ~ this.originalCurrency:",this.originalCurrency);
+    },
+    updateCurrencyDisplay() {
+      const currencyElements = document.querySelectorAll(".currency");
+      if (currencyElements.length > 0) {
+        currencyElements.forEach((currencyElement) => {
+          currencyElement.innerText = this.newCurrency;
+        });
+      } else {
+        console.error("Currency elements are missing in the DOM.");
       }
     },
+    ChangePrices() {
+      const priceElements = document.querySelectorAll(".price");
+      priceElements.forEach((priceElement) => {
+        const oldValue = parseFloat(priceElement.innerHTML);
+        if (!isNaN(oldValue)) {
+          this.updatePriceDisplay(oldValue, this.ExchangeRate, priceElement);
+        } else {
+          console.error("Invalid price value:", priceElement.innerHTML);
+        }
+      });
+    },
+    updatePriceDisplay(oldValue, rate, element) {
+      if (element) {
+        console.log("🚀 ~ updatePriceDisplay ~ element:", element)
+        const convertedValue = Math.round(oldValue * rate * 100) / 100;;
+        element.innerText = `${convertedValue.toFixed(2)}`;
 
-    async getEXchangeRate(from, to, amount) {
-      const token = window.localStorage.getItem("x-auth-token");
-      if (!token) {
-        console.error("Authentication token is missing.");
-        return amount;
+      } else {
+        console.error("element not found ");
       }
+    },
+    async getExchangeRate(currentCountry) {
+      console.log(
+        "🚀 ~ getExchangeRate ~ currentCountry:",
+        currentCountry.currency
+      );
+      const origina_currency = this.originalCurrency;
+      console.log("🚀 ~ getExchangeRate ~ origina_currency:", origina_currency);
+ 
       try {
-        console.log("Request Payload:", { from, to, amount });
-console.log("Headers:", { "x-auth-token": token });
-        const response = await fetch(
-          "https://gateway.storeino.com/api/paypal/converts/exchange",
+
+        const getPrice = await StoreinoApp.$store.custom(
+          'post', 
+          'https://gateway.storeino.com', 
+          'paypal/converts/exchange',{}, 
           {
-            method: "POST",
-            headers: {
-              "content-type": "application/json",
-              accept: "application/json, text/plain, */*",
-              "x-auth-token": `${token}`,
-            },
-            body: { from, to, amount }, 
+            from: origina_currency,
+            to: currentCountry.currency,
+            amount: 10,
           }
         );
-
-        const data = await response.json();
-        console.log("🚀 ~ getEXchangeRate ~ data:", data);
-
-        if (response.ok && data.success) {
-          this.ExchangeRate = data.result;
-          return  data.result;
-        } else {
-          console.error("Failed to convert currency:", data.message || "Unknown error.");
-          return 1;
-        }
+        console.log("🚀 ~ getExchangeRate ~ getPrice:", getPrice)
+        const rateExchange = {
+          value: getPrice.result,
+          expiry: Date.now() + 60 * 60 * 1000, 
+        };
+        localStorage.setItem('rate-exchange', JSON.stringify(rateExchange));
+        return  getPrice.result;  
       } catch (error) {
-        console.error("Currency conversion error:", error);
-        return 1;
+        console.error("Error during currency conversion:", error);
+        return null;
       }
     },
-
     svg(name) {
       const icons = {
         edit: '<svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#5f6368"><path d="M80 0v-160h800V0H80Zm160-320h56l312-311-29-29-28-28-311 312v56Zm-80 80v-170l448-447q11-11 25.5-17t30.5-6q16 0 31 6t27 18l55 56q12 11 17.5 26t5.5 31q0 15-5.5 29.5T777-687L330-240H160Zm560-504-56-56 56 56ZM608-631l-29-29-28-28 57 57Z"/></svg>',
@@ -129,3 +215,4 @@ console.log("Headers:", { "x-auth-token": token });
     },
   },
 });
+

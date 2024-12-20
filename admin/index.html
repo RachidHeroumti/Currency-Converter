@@ -16,7 +16,7 @@
         <h1
           class="w-full text-center p-4 mb-6 text-white font-bold rounded bg-red-700"
         >
-          Currency Converter
+        {{'appName'|t}}
         </h1>
 
         <div class="flex gap-6">
@@ -34,13 +34,15 @@
                 class="w-full outline-none bg-transparent text-gray-700"
                 placeholder="Search for currency"
               />
-              <span v-html="svg('search')" class="text-gray-600"></span>
+
+              <span v-html="svg(query?'cancel':'search')" class="text-gray-600" 
+              @click="query=''"></span>
             </div>
 
             <!-- Search Results -->
             <div
               v-if="query"
-              class="absolute top-16 left-5 bg-white border border-gray-300 rounded-lg shadow-md w-full max-w-md overflow-y-auto max-h-64 z-50"
+              class="absolute top-16 left-5 bg-white border border-gray-300 rounded-lg shadow-md w-full max-w-md overflow-y-auto max-h-96 z-50"
             >
               <div
                 v-for="(item, i) in searchData"
@@ -71,16 +73,16 @@
                   class="h-5 w-5 rounded text-blue-600"
                   @change="SelectAllCurrencies"
                 />
-                <span>Select All Currencies</span>
+                <span>{{'select_all'|t}}</span>
               </div>
 
-              <div class="flex items-center space-x-2">
+              <!-- <div class="flex items-center space-x-2">
                 <input type="checkbox" class="h-5 w-5 rounded text-blue-600" />
                 <span>Auto Currency Switch</span>
-              </div>
+              </div> -->
 
               <!-- Advanced Settings -->
-              <div class="p-4 bg-gray-50 border rounded-lg">
+              <!-- <div class="p-4 bg-gray-50 border rounded-lg">
                 <h1
                   class="flex justify-between items-center text-gray-700 font-semibold"
                 >
@@ -122,7 +124,8 @@
                     />
                   </div>
                 </div>
-              </div>
+              </div> -->
+
             </div>
           </div>
 
@@ -133,10 +136,10 @@
             <h2
               class="text-center mb-2 p-3 text-white font-medium bg-pink-600 rounded"
             >
-              Selected Currency
+            {{'selected_currency'|t}}
             </h2>
 
-            <div class="space-y-4 overflow-y-auto max-h-64">
+            <div class="space-y-4 overflow-y-auto max-h-96">
               <div
                 v-for="(item, i) in selectedList"
                 :key="i"
@@ -153,6 +156,7 @@
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </template>

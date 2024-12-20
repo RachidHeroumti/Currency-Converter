@@ -6543,8 +6543,6 @@ if (!token) {
 // Create Storeino App (Repeated)
 window.StoreinoApp = Vue;
 window.StoreinoApp.$store = {
-
-    
     search: async function (module, params) {
         let response = await http.get(`/api/${module}/search`, { params });
         return response.data;
@@ -6569,7 +6567,26 @@ window.StoreinoApp.$store = {
           params
         });
         return response.data;
+      },
+      custom: async function (type, url, module,params, data) {
+    
+        try {
+          const validMethods = ["get", "post", "put", "delete", "patch"];
+          if (!validMethods.includes(type.toLowerCase())) {
+            throw new Error(`Invalid HTTP method: ${type}`);
+          }
+
+          const response = await http[type.toLowerCase()](
+            `${url}/api/${module}`, data, { params } 
+          );
+      
+          return response.data;
+        } catch (error) {
+          console.error(`Error during ${type.toUpperCase()} request to ${url}/api/${module}:`, error);
+          throw error;
+        }
       }
+      
 };
 
 // Async (Repeated)

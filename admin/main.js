@@ -1,4 +1,3 @@
-
 var vm = new StoreinoApp({
   el: "#app_currencyconverter",
   data: {
@@ -10,52 +9,74 @@ var vm = new StoreinoApp({
     },
     searchData: [],
     selectedList: [],
-    backgroundColor:'#ffffff',
-    contentColor:'#000000',
-    showAdvance:false,
-    configData:[]
+    backgroundColor: "#ffffff",
+    contentColor: "#000000",
+    showAdvance: false,
+    configData: [],
   },
-  computed: {},
   watch: {
     query(value) {
-      this.getCurrency(value);
+      // Debounce the search to improve performance
+      this.debouncedGetCurrency(value);
     },
-    selectedList(ls){
-      console.log('data will put in _data_',ls);
-      this.data=ls;
-      __DATA__.SelectedCurrencies=this.data ;
-    }
-
+    selectedList(newList) {
+      console.log("Updated selected list:", newList);
+      // Update data.SelectedCurrencies to match selectedList
+      this.$set(this.data, "SelectedCurrencies", [...newList]);
+    },
   },
   mounted() {
-    this.selectedList=this.data.SelectedCurrencies;
+    // Initialize selectedList with preselected currencies
+    this.selectedList = [...this.data.SelectedCurrencies];
   },
   methods: {
-  
+    // Debounce implementation for search
+    debounce(func, wait) {
+      let timeout;
+      return function (...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func.apply(this, args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    },
+    // Initialize debounced search function
+    debouncedGetCurrency: null,
     getCurrency(value) {
-      this.searchData = this.data.AllCountries.filter((country) =>
-        country.countryName.toLowerCase().startsWith(value.toLowerCase())
-      );
-      console.log("🚀 ~ getCurrency ~ searchData:", this.searchData);
+      try {
+        const lowerCaseQuery = value.toLowerCase();
+        this.searchData = this.data.AllCountries.filter((country) =>
+          country.countryName.toLowerCase().startsWith(lowerCaseQuery)
+        );
+        console.log("Search results:", this.searchData);
+      } catch (error) {
+        console.error("Error in getCurrency:", error);
+        this.errorhint.text = "Search failed. Please try again.";
+      }
     },
     AddCurrencyToList(item) {
-      this.selectedList.push(item);
+      // Prevent duplicate entries
+      if (!this.selectedList.some((selected) => selected.countryName === item.countryName)) {
+        this.selectedList.push(item);
+      }
     },
     RemoveFromList(item) {
-      this.selectedList = this.selectedList.filter((country) => {
-        return country.countryName != item.countryName;
-      });
-      
+      // Remove the item from selectedList
+      this.selectedList = this.selectedList.filter(
+        (country) => country.countryName !== item.countryName
+      );
     },
     SelectAllCurrencies(event) {
       if (event.target.checked) {
-       
-        this.selectedList = this.data.AllCountries;  
+        // Select all countries
+        this.selectedList = [...this.data.AllCountries];
       } else {
-        this.selectedList = []; 
+        // Deselect all countries
+        this.selectedList = [];
       }
-    }    
-    ,
+    },
     svg(name) {
       const icons = {
         edit: '<svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#5f6368"><path d="M80 0v-160h800V0H80Zm160-320h56l312-311-29-29-28-28-311 312v56Zm-80 80v-170l448-447q11-11 25.5-17t30.5-6q16 0 31 6t27 18l55 56q12 11 17.5 26t5.5 31q0 15-5.5 29.5T777-687L330-240H160Zm560-504-56-56 56 56ZM608-631l-29-29-28-28 57 57Z"/></svg>',
@@ -82,5 +103,9 @@ var vm = new StoreinoApp({
         };
       return icons[name] || "";
     },
+  },
+  created() {
+    // Assign debounced method during initialization
+    this.debouncedGetCurrency = this.debounce(this.getCurrency, 300);
   },
 });
